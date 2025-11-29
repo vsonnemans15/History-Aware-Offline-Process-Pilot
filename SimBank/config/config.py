@@ -1,0 +1,1 @@
+path = "c:\\Users\\u0166838\\OneDrive - KU Leuven\\Documents\\Doc\\Code\\SimBank from Simulation to Solution in Prescriptive Process Monitoring"
