@@ -2,7 +2,7 @@ import types
 import sys
 sys.modules['d3rlpy.healthcheck'] = types.SimpleNamespace(run_healthcheck=lambda: None)
 
-from MDP_functions_updated import *
+from MDP_functions import *
 from Evaluation import *
 import argparse
 import math
@@ -66,21 +66,21 @@ def parse_args():
 
     parser.add_argument("--dataset", type=str, default="SimBank", help="Dataset to use")
     parser.add_argument("--method", type=str, choices=["CQL", "BC", "BCQ"], default="CQL", help="RL method")
-    parser.add_argument("--num_steps", type=int, default=1500, help="Number of training steps")
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
+    parser.add_argument("--num_steps", type=int, default=4000000, help="Number of training steps")
+    parser.add_argument("--batch_size", type=int, default=100, help="Batch size for training")
     parser.add_argument("--target_update", type=int, default=8000, help="Target update")
     parser.add_argument("--n_hidden1", type=int, default=250, help="Number of hidden neurons")
     parser.add_argument("--n_hidden2", type=int, default=250, help="Number of hidden neurons")
     parser.add_argument("--deep_network", type=str2bool, default=False, help="Deep neural architecture")
-    parser.add_argument("--order", type=int, default=6, help="Decision-making model order")
+    parser.add_argument("--order", type=int, default=6, help="Markov order")
     parser.add_argument("--MDP_model", type=str, choices=["POMDP", "HMDP", "MDP"], default="HMDP", help="Decision-making model class")
-    parser.add_argument("--num_steps_ope", type=int, default=1500, help="Number of training steps")
+    parser.add_argument("--num_steps_ope", type=int, default=1000000, help="Number of training steps")
     return parser.parse_args()
 
-# Then call it early in your script:
+
 args = parse_args()
 dataset = args.dataset
-order = args.order
+order = args.order # order k 
 concatenated_states = True
 method = args.method
 num_steps = args.num_steps
@@ -188,7 +188,7 @@ class BasicEnv(Env):
                 self.embedding_cols[col] = len(le.classes_)
                 self.test_df[col] = self.test_df[col].map(lambda x: le.transform([x])[0] if x in le.classes_ else -1)
 
-        if self.order > 1: #lagged features
+        if self.order > 1: # we lagg dynamic state variables (including prior actions) to obtain k-step augmented states
             dynamic_cols_to_lag = []
 
             # numeric dynamic features
@@ -196,7 +196,7 @@ class BasicEnv(Env):
 
             # one-hot dynamic categorical features
             for orig_col in self.dataset_manager.dynamic_cat_cols:
-                if orig_col in self.onehot_cols:  # one-hot
+                if orig_col in self.onehot_cols: 
                     oh_cols = [c for c in self.state_cols if c.startswith(orig_col + "_")]
                     dynamic_cols_to_lag += oh_cols
                 elif orig_col in self.train_df.columns:  
@@ -281,7 +281,7 @@ class BasicEnv(Env):
     
 env = BasicEnv(dataset, order, train_fraction, MDP_model)
 
-# Constructing custom offline dataset for d3rlpy algorithm
+# Constructing custom offline RL traces for d3rlpy algorithm
 state_cols = env.state_cols
 train_df = env.train_df.copy()  
 train_df['action_nr'] = train_df['action'].map(env.activity_index)
@@ -311,7 +311,7 @@ observations = []
 actions = []
 rewards = []
 terminals = []
-for case_id, case_df in train_df.groupby("ID"):
+for case_id, case_df in train_df.groupby("ID"): 
 
     len_case = len(case_df)
     for idx in range(0, len_case-1):
@@ -327,9 +327,9 @@ for case_id, case_df in train_df.groupby("ID"):
 observations = np.array(observations, dtype=np.float32)
 actions = np.array(actions, dtype=np.int64).reshape(-1, 1)
 rewards = np.array(rewards, dtype=np.float32)
-terminals = np.array(terminals, dtype=bool)
+terminals = np.array(terminals, dtype=bool) #flags indicating whether the case ended after each transition
 
-offline_dataset = d3rlpy.dataset.MDPDataset(
+offline_dataset = d3rlpy.dataset.MDPDataset( #RL traces
     observations=observations,
     actions=actions,
     rewards=rewards,
@@ -377,7 +377,7 @@ class CustomEncoderFactory(EncoderFactory):
     def get_type() -> str:
         return "custom"
     
-if args.deep_network:
+if args.deep_network: # for BPIC12 and BPIC17
     config = DiscreteCQLConfig(batch_size=args.batch_size, target_update_interval=target_update,reward_scaler=StandardRewardScaler(),encoder_factory=CustomEncoderFactory(feature_size=64))
     algo = DiscreteCQL(config=config, device=device, enable_ddp=False)
 
@@ -412,9 +412,7 @@ algo.save_model(f'trained_algo/{args.dataset}_{method}_{MDP_model}_order_{order}
 results = {"method": method,
            "dataset": args.dataset,
            "train_df": train_df,
-            #"test_df": test_df,
            "loss_stat_df": results_df,
-            #"n_states": env.n_states,
             'num_steps': num_steps,
             "runtime": runtime,
             "order": order,
@@ -442,12 +440,9 @@ if dataset == 'SimBank':
 
 from d3rlpy.ope import FQEConfig
 
-print(f"============= Load Trained Algo {method} ==============")
-print(f"Training the {method} agent on {args.dataset} with {num_steps} steps")
-print(f" order: {order}, State cols: {env.state_cols}")
-print(f"Batch size: {BATCH_SIZE}")
+print(f"============= Train OPE estimator for {method} policy ==============")
 
-# Get test dataset transitions
+# Get testing RL traces
 test_df = env.test_df.copy()  
 test_df['action_nr'] = test_df['action'].map(env.activity_index)
 test_df['reward'] = 0.0 
@@ -502,6 +497,19 @@ test_dataset = d3rlpy.dataset.MDPDataset(
     terminals=terminals,
 )
 
+if args.deep_network:
+    ope_config = FQEConfig(batch_size=args.batch_size, target_update_interval=target_update, reward_scaler=StandardRewardScaler(), encoder_factory=CustomEncoderFactory(feature_size=64))
+    fqe = d3rlpy.ope.DiscreteFQE(
+            algo=algo,
+            config=ope_config,
+        )
+else: 
+    ope_config = FQEConfig(batch_size=args.batch_size, target_update_interval=target_update, encoder_factory=encoder_factory)
+    fqe = d3rlpy.ope.DiscreteFQE(
+                algo=algo,
+                config=ope_config,
+            )
+    
 start_time = time.time()
 ope_config = FQEConfig()
 fqe = d3rlpy.ope.DiscreteFQE(
@@ -515,9 +523,7 @@ results_fqe = fqe.fit(
     n_steps=args.num_steps_ope,
     n_steps_per_epoch=1000,
     evaluators={
-      'init_value': d3rlpy.metrics.InitialStateValueEstimationEvaluator(test_dataset.episodes),
       'average_value': d3rlpy.metrics.AverageValueEstimationEvaluator(test_dataset.episodes),
-      'soft_opc': d3rlpy.metrics.SoftOPCEvaluator(return_threshold=0),
       'action_match': d3rlpy.metrics.DiscreteActionMatchEvaluator(test_dataset.episodes),
       }
 

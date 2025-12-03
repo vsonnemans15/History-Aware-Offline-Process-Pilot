@@ -1,3 +1,6 @@
+conda create --name training_env --file requirements_training.txt
+conda activate training_env
+
 python -u CQL_offline.py --dataset SimBank --MDP_model HMDP --method CQL --batch_size 100 --n_hidden1 300 --n_hidden2 400 --num_steps 3000000 --num_steps_ope 100000 --order 1
 python -u CQL_offline.py --dataset SimBank --MDP_model HMDP --method CQL --batch_size 100 --n_hidden1 300 --n_hidden2 400 --num_steps 3000000 --num_steps_ope 100000 --order 2
 python -u CQL_offline.py --dataset SimBank --MDP_model HMDP --method CQL --batch_size 100 --n_hidden1 300 --n_hidden2 400 --num_steps 3000000 --num_steps_ope 100000 --order 3
@@ -52,6 +55,9 @@ python -u CQL_offline.py --dataset hospital_billing_2 --method CQL --batch_size 
 python -u CQL_offline.py --dataset hospital_billing_2 --method CQL --batch_size 100 --n_hidden1 300 --n_hidden2 400 --num_steps 2000000 --num_steps_ope 2000000 --order 2
 python -u CQL_offline.py --dataset hospital_billing_2 --method CQL --batch_size 100 --n_hidden1 300 --n_hidden2 400 --num_steps 2000000 --num_steps_ope 2000000 --order 3
 python -u CQL_offline.py --dataset hospital_billing_2 --method CQL --batch_size 100 --n_hidden1 300 --n_hidden2 400 --num_steps 2000000 --num_steps_ope 2000000 --order 4
+
+conda create --name test_env --file requirements.txt
+conda activate test_env
 
 python -u MA_test.py --T 12 --n_cases 1000 --max_lag 7 --L 3 --Q 4 --dataset SimBank --n_samples 100 --MDP_model HMDP
 python -u MA_test.py --n_cases 1000 --max_lag 10 --L 3 --Q 8 --dataset bpic2012_accepted --n_samples 100

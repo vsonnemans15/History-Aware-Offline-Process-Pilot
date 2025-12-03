@@ -59,8 +59,6 @@ class DatasetMDP:
             return case_df  # no terminal found → return full trace
      
         df = df.groupby("ID", group_keys=False).apply(cut_case).reset_index(drop=True)
-
-        # Ensure correct ordering
         df = df.sort_values(by=['ID', dataset_manager.timestamp_col]).reset_index(drop=True)
         return df
     

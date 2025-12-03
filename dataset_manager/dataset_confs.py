@@ -1,3 +1,8 @@
+"""
+Adapted from the data preprocessing code of I. Teinemaa et al., 
+"Outcome-Oriented Predictive Process Monitoring: Review and Benchmark".
+"""
+
 import os
 
 case_id_col = {}
@@ -18,10 +23,8 @@ environmental_actions = {}
 control_flow_var_attribute = {}
 filename = {}
 
-base_dir = os.path.dirname(os.path.abspath(__file__))  # folder where the script is
+base_dir = os.path.dirname(os.path.abspath(__file__))  
 logs_dir = os.path.join(base_dir, "..", "data_logs")
-#logs_dir = "/Users/vsonnemans/Desktop/GitHub/Process_Autopilot_State_Abstraction/data_logs"
-
 
 #### SimBank settings ####
 dataset = "SimBank"
@@ -45,36 +48,6 @@ control_flow_var_binary[dataset]= []
 control_flow_var_attribute[dataset] = ["noc", "nor", "skip", "contact_hq", "cum_cost", "elapsed_time"]
 control_flow_var[dataset] = environmental_actions[dataset] + control_flow_var_incremental[dataset] + control_flow_var_attribute[dataset] + control_flow_var_binary[dataset]
 
-
-#### Traffic fines settings ####
-
-for formula in range(1,3):
-    dataset = "traffic_fines_%s"%formula
-    
-    filename[dataset] = os.path.join(logs_dir, "traffic_fines_%s.csv"%formula)
-    
-    case_id_col[dataset] = "Case ID"
-    activity_col[dataset] = "Activity"
-    resource_col[dataset] = "Resource"
-    timestamp_col[dataset] = "Complete Timestamp"
-    label_col[dataset] = "label"
-    pos_label[dataset] = "deviant"
-    neg_label[dataset] = "regular"
-
-    # features for classifier
-    dynamic_cat_cols[dataset] = ["Activity", "Resource", "lastSent", "notificationType", "dismissal"]
-    static_cat_cols[dataset] = ["article", "vehicleClass"]
-    dynamic_num_cols[dataset] = ["expense", "timesincelastevent", "timesincecasestart", "timesincemidnight", "event_nr", "month", "weekday", "hour", "open_cases"]
-    static_num_cols[dataset] = ["amount", "points"]
-
-    environmental_actions[dataset] = ['Payment']
-    control_flow_var_incremental[dataset] = []
-    control_flow_var_binary[dataset]= []
-    control_flow_var_attribute[dataset] = []
-    control_flow_var[dataset] = environmental_actions[dataset] + control_flow_var_incremental[dataset] + control_flow_var_attribute[dataset] + control_flow_var_binary[dataset]
-    
-  
-    
 
 #### Sepsis Cases settings ####
 datasets = ["sepsis_cases_%s" % i for i in range(1, 5)]
@@ -119,33 +92,6 @@ for i in [1,2,4]:
     
 
 
-#### Production log settings ####
-dataset = "production"
-
-filename[dataset] = os.path.join(logs_dir, "Production.csv")
-
-case_id_col[dataset] = "Case ID"
-activity_col[dataset] = "Activity"
-resource_col[dataset] = "Resource"
-timestamp_col[dataset] = "Complete Timestamp"
-label_col[dataset] = "label"
-neg_label[dataset] = "regular"
-pos_label[dataset] = "deviant"
-
-# features for classifier
-static_cat_cols[dataset] = ["Part Desc.", "Rework"]
-static_num_cols[dataset] = [] 
-dynamic_cat_cols[dataset] = ['Activity', 'Resource', "Report Type"]
-dynamic_num_cols[dataset] = ["Qty Completed", "Qty for MRB", "activity_duration"]
-environmental_actions[dataset] = []
-control_flow_var_incremental[dataset] = []
-control_flow_var_binary[dataset]= []
-control_flow_var_attribute[dataset] = ["Work Order  Qty","Qty Rejected", 'Total Qty Rejected']
-control_flow_var[dataset] = environmental_actions[dataset] + control_flow_var_incremental[dataset] + control_flow_var_attribute[dataset] + control_flow_var_binary[dataset]
-    
-  
-    
-
 #### BPIC2017 settings ####
 
 bpic2017_dict = {"bpic2017_cancelled": "BPIC17_O_Cancelled.csv",
@@ -172,7 +118,6 @@ for dataset, fname in bpic2017_dict.items():
     dynamic_num_cols[dataset] = ['FirstWithdrawalAmount', 'MonthlyCost', 'NumberOfTerms', 'OfferedAmount', 'CreditScore',  "timesincelastevent", "timesincecasestart", "timesincemidnight", "event_nr", "month", "weekday", "hour", "open_cases"]
     static_num_cols[dataset] = ['RequestedAmount']
     environmental_actions[dataset] = ['O_Accepted', 'O_Cancelled', 'O_Returned']
-    #control_flow_var_incremental[dataset] = ['O_Create Offer', 'W_Call after offers']
     control_flow_var_incremental[dataset] = []
     control_flow_var_binary[dataset]= []
     control_flow_var_attribute[dataset] = []
@@ -243,74 +188,8 @@ for dataset, fname in bpic2012_dict.items():
     static_num_cols[dataset] = ['AMOUNT_REQ']
 
     environmental_actions[dataset] = ['O_CANCELLED-COMPLETE', "O_ACCEPTED-COMPLETE", 'O_SENT_BACK-COMPLETE']
-    #control_flow_var_incremental[dataset] = ['O_CREATED-COMPLETE']
     control_flow_var_incremental[dataset] = []
     control_flow_var_binary[dataset]= []
     control_flow_var_attribute[dataset] = []
     control_flow_var[dataset] = environmental_actions[dataset] + control_flow_var_incremental[dataset] + control_flow_var_attribute[dataset] + control_flow_var_binary[dataset]
-    
-  
-
-    
-#### BPIC2015 settings ####
-for municipality in range(1,6):
-    for formula in range(1,3):
-        dataset = "bpic2015_%s_f%s"%(municipality, formula)
-        
-        filename[dataset] = os.path.join(logs_dir, "BPIC15_%s_f%s.csv"%(municipality, formula))
-
-        case_id_col[dataset] = "Case ID"
-        activity_col[dataset] = "Activity"
-        resource_col[dataset] = "org:resource"
-        timestamp_col[dataset] = "time:timestamp"
-        label_col[dataset] = "label"
-        pos_label[dataset] = "deviant"
-        neg_label[dataset] = "regular"
-
-        # features for classifier
-        dynamic_cat_cols[dataset] = ["Activity", "monitoringResource", "question", "org:resource"]
-        static_cat_cols[dataset] = ["Responsible_actor"]
-        dynamic_num_cols[dataset] = ["hour", "weekday", "month", "timesincemidnight", "timesincelastevent", "timesincecasestart", "event_nr", "open_cases"]
-        static_num_cols[dataset] = ["SUMleges", 'Aanleg (Uitvoeren werk of werkzaamheid)', 'Bouw', 'Brandveilig gebruik (vergunning)', 'Gebiedsbescherming', 'Handelen in strijd met regels RO', 'Inrit/Uitweg', 'Kap', 'Milieu (neutraal wijziging)', 'Milieu (omgevingsvergunning beperkte milieutoets)', 'Milieu (vergunning)', 'Monument', 'Reclame', 'Sloop']
-        environmental_actions[dataset] = []
-        control_flow_var_incremental[dataset] = []
-        control_flow_var_binary[dataset]= []
-        control_flow_var_attribute[dataset] = []
-        control_flow_var[dataset] = environmental_actions[dataset] + control_flow_var_incremental[dataset] + control_flow_var_attribute[dataset] + control_flow_var_binary[dataset]
-    
-    
-    
-        if municipality in [3,5]:
-            static_num_cols[dataset].append('Flora en Fauna')
-        if municipality in [1,2,3,5]:
-            static_num_cols[dataset].append('Brandveilig gebruik (melding)')
-            static_num_cols[dataset].append('Milieu (melding)')
-            
-            
-#### BPIC2011 settings ####
-for formula in range(1,5):
-    dataset = "bpic2011_f%s"%formula 
-    
-    filename[dataset] = os.path.join(logs_dir, "BPIC11_f%s.csv"%formula)
-    
-    case_id_col[dataset] = "Case ID"
-    activity_col[dataset] = "Activity code"
-    resource_col[dataset] = "Producer code"
-    timestamp_col[dataset] = "time:timestamp"
-    label_col[dataset] = "label"
-    pos_label[dataset] = "deviant"
-    neg_label[dataset] = "regular"
-
-    # features for classifier
-    dynamic_cat_cols[dataset] = ["Activity code", "Producer code", "Section", "Specialism code.1", "group"]
-    static_cat_cols[dataset] = ["Diagnosis", "Treatment code", "Diagnosis code", "Specialism code", "Diagnosis Treatment Combination ID"]
-    dynamic_num_cols[dataset] = ["Number of executions", "hour", "weekday", "month", "timesincemidnight", "timesincelastevent", "timesincecasestart", "event_nr", "open_cases"]
-    static_num_cols[dataset] = ["Age"]
-    environmental_actions[dataset] = []
-    control_flow_var_incremental[dataset] = []
-    control_flow_var_binary[dataset]= []
-    control_flow_var_attribute[dataset] = []
-    control_flow_var[dataset] = environmental_actions[dataset] + control_flow_var_incremental[dataset] + control_flow_var_attribute[dataset] + control_flow_var_binary[dataset]
-    
-
     

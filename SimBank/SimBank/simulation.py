@@ -9,9 +9,6 @@ from pm4py.objects.petri_net.utils.petri_utils import get_transition_by_name
 from .extra_flow_conditions import ExtraFlowConditioner
 from .activity_execution import ActivityExecutioner
 from . import petri_net_generator
-#from extra_flow_conditions import ExtraFlowConditioner
-#from activity_execution import ActivityExecutioner
-#import petri_net_generator
 
 class PresProcessGenerator():
     def __init__(self, dataset_params, offline_env,  seed=82):
@@ -315,8 +312,9 @@ class PresProcessGenerator():
 
     
 
-    def reset_for_online(self, seed_to_add=0):
+    def reset_for_online(self, seed_to_add=0): 
             """
+            We added this method to the original SimBank code
             Initialize a simulation with a single starting event.
             Returns:
                 initial_event: dict of the first simulated event
@@ -411,6 +409,7 @@ class PresProcessGenerator():
     
     def step_for_online(self, simulation_state, action):
         """
+        We added this method to the original SimBank code to allow stepping through the simulation
         Take one step in the online simulation where the agent can choose an action
         after every visible event.
 
@@ -439,7 +438,7 @@ class PresProcessGenerator():
         parallel_timestamps = simulation_state["parallel_timestamps"]
         prev_event = trace[-1] if len(trace) > 0 else None
 
-        # Helper: auto-fire ghost/invisible transitions until a visible transition is available
+        # Auto-fire ghost/invisible transitions until a visible transition is available
         while True:
             if (not semantics.enabled_transitions(net, marking)):
                     for event in trace:

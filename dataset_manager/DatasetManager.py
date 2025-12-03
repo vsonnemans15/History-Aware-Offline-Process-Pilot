@@ -1,3 +1,8 @@
+"""
+Adapted from the data preprocessing code of I. Teinemaa et al., 
+"Outcome-Oriented Predictive Process Monitoring: Review and Benchmark".
+"""
+
 import sys
 
 #import dataset_confs as dataset_confs

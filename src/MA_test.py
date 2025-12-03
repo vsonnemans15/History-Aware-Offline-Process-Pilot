@@ -32,11 +32,11 @@ import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
 
-from MDP_functions_updated import *
+from MDP_functions import *
 
 from test_func._core_test_fun import *
 
-from _DGP_TIGER import *
+#from _DGP_TIGER import *
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -45,13 +45,13 @@ print("n_cores = ", n_cores)
 
 # === Parse command-line arguments ===
 parser = argparse.ArgumentParser(description='Run MDP Real Evaluation')
-parser.add_argument('--T', type=int, default=None)
-parser.add_argument('--n_cases', type=int, default=20)
-parser.add_argument('--max_lag', type=int, default=10)
-parser.add_argument('--L', type=int, default=3)
-parser.add_argument('--Q', type=int, default=10)
-parser.add_argument('--dataset', type=str, default='bpi2017')
-parser.add_argument('--n_samples', type=int, default=200) #number of test runs
+parser.add_argument('--T', type=int, default=None) # if not specified, we use the mode of case lengths
+parser.add_argument('--n_cases', type=int, default=200) # number of cases to sample in each one test run
+parser.add_argument('--max_lag', type=int, default=10) # maximum test order K
+parser.add_argument('--L', type=int, default=3) # parameter for the test
+parser.add_argument('--Q', type=int, default=10) # parameter for the test
+parser.add_argument('--dataset', type=str, default='bpic2017_accepted')
+parser.add_argument('--n_samples', type=int, default=100) # number of test runs
 parser.add_argument('--rep_offset', type=int, default=0)
 parser.add_argument('--MDP_model', type=str, default='Unknown')
 args = parser.parse_args()
@@ -133,7 +133,7 @@ class BasicEnv(Env):
         if self.penalty_illegal == 0:
             self.penalty_illegal = 1 
 
-def prepare_testmdp_data(df, T, state_cols):
+def prepare_testmdp_data(df, T, state_cols): #transforming the event data into RL traces (sequences of states, actions, rewards)
     data = []
     action_col = 'action_nr' #encoded action
     trajectory_col = 'ID'
@@ -147,7 +147,6 @@ def prepare_testmdp_data(df, T, state_cols):
 
         X = traj_df[feature_cols].to_numpy()[:-1]
 
-        # Ensure A is 2D: reshape if scalar actions
         A_raw = traj_df[action_col].to_numpy()[1:]
         R_raw = traj_df['reward'].to_numpy()[1:]
         if np.ndim(A_raw[0]) == 0:
@@ -163,7 +162,7 @@ def prepare_testmdp_data(df, T, state_cols):
         data.append([X, A, R])
 
     return data
- 
+
 order = 1
 train_fraction = 0.8
 env = BasicEnv(args.dataset, order, train_fraction)
@@ -199,13 +198,10 @@ else:
 
 if args.dataset == 'SimBank' and args.MDP_model == 'HMDP':
     state_cols = [col for col in state_cols if col not in ['cum_cost', 'elapsed_time', 'noc', 'nor', 'skip', 'contact_hq']]
-elif args.dataset == 'SimBank' and args.MDP_model == 'MDP':
-    state_cols = [col for col in state_cols if col not in ['cum_cost', 'elapsed_time']] #keep control flow variables 'noc', 'nor', 'skip', 'contact_hq'
-    
 
 print(state_cols)
 print(f"{args.dataset}_{args.MDP_model}_CV_T_{T}_n_cases_{args.n_cases}_L_{args.L}_Q_{args.Q}_n_samples_{args.n_samples}")
-df_trajectories = prepare_testmdp_data(df, T, state_cols) #cutting tractories to length T
+df_trajectories = prepare_testmdp_data(df, T, state_cols) #cutting tractories to length T and transforming to RL traces
 
 
 data = [df_trajectories[i] for i in np.random.choice(len(df_trajectories), size=args.n_cases, replace=False)] #select n_cases randomly
@@ -227,7 +223,7 @@ class Setting:
     def __init__(self):
         self.T = data[0][0].shape[0] #we loose one observation when preparing the data
         self.x_dims = data[0][0].shape[1] #num of features
-        self.N = len(data) #number of cases
+        self.N = len(data) #number of cases to sample in each test run (N corresponds to C in the paper)
         self.L = args.L
         self.Q = args.Q
         self.show = False
@@ -252,10 +248,10 @@ def one_time(seed = 1, J = 1,
     np.random.seed(seed) #changing the seed so that we have different data each time
     df_sel = [df_trajectories[i] for i in np.random.choice(len(df_trajectories), size=N, replace=False)] #select N cases randomly
     MDPs = normalize(df_sel.copy())
-    #print(MDPs)
+
 
     N = len(MDPs)
-    ### Calculate
+
     if paras == "CV_once":
         return lam_est(data = MDPs, J = J, B = B, Q = Q, L=args.L, paras = paras, include_reward = include_reward,
                   fixed_state_comp = None, method = method)
@@ -294,16 +290,16 @@ print(f"Max test lag: {test_lags}")
 for J in test_lags:
             print("lag = ", J)
             p_values = one_setting_one_J(rep_times = args.n_samples, J = J, 
-                              N = args.n_cases, T = config.T,      #config.T = args.T-1 (we loose one obs when preparing data)
+                              N = args.n_cases, T = config.T,      
                               B = 100, Q = args.Q,
                               include_reward = False, mute = False,
-                              paras = "CV_once", init_seed = 4000, parallel = n_cores, method = "QRF") #230
+                              paras = "CV_once", init_seed = 4000, parallel = n_cores, method = "QRF") 
            
             rejection_rate = rej_rate_quick(p_values)
             print("p_values:", p_values)
-            results["quick_rejection_rates"][J] = rejection_rate  # ensure serializable
+            results["quick_rejection_rates"][J] = rejection_rate  
             print("p_values:", p_values)
-            results["p_values"][J] = p_values  # store raw list
+            results["p_values"][J] = p_values  
 
             package_path = os.path.abspath(os.getcwd())
             output_dir = os.path.join(package_path, "test_results")

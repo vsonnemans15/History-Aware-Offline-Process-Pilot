@@ -1,5 +1,5 @@
 from datetime import datetime
-from MDP_functions_updated import *
+from MDP_functions import *
 from SimBank.SimBank.simulation import *
 import math 
 from itertools import product
@@ -16,15 +16,14 @@ def online_evaluation(offline_env, algo, args):
 
     print("================== Online Evaluation with algo {method} =============================")
 
-    with open("dataset_params.pkl", "rb") as f:
+    with open("dataset_params.pkl", "rb") as f: #same parameters as SimBank paper
         dataset_params = pickle.load(f)
     dataset_params["simulation_start"] = datetime(2024, 3, 20, 8, 0)
 
     online_env = PresProcessGenerator(dataset_params, offline_env, dataset_params["random_seed_test"])
     
-    # ================ Testing Phase (online) ================================
+
     num_episodes_test = dataset_params["test_size"]
-    stopping_criteria = 100 #max length of traces
     optimal_paths_test = []
     recommended_traces_test = []
     n_granted_test = 0
@@ -33,27 +32,11 @@ def online_evaluation(offline_env, algo, args):
     list_granted_percent_test = []
     list_len_ep_test = []
     case_id_tracker = []
-    n_stopping_cases_test = 0
-    n_stopping_cases_long_test = 0
     test_cases_with_impossible_actions = []
 
-    rewards_new_cases = []
-    rewards_seen_cases = []
     start_time = time.time()
 
-    #for generalization evaluation
-    n_new_states = 0
-    n_unmapped_states = 0
     total_visited_states = 0
-
-    n_seen_cases = 0 #satinity check n_seen_cases + n_unseen_cases = num_episodes_test
-    n_new_cases = 0
-    new_starting_states = 0
-
-    n_seen_granted_cases = 0
-    n_new_granted_cases = 0
-    ids_new_cases = []
-    ids_seen_cases = []
 
     n_possible_transitions = 0
     n_impossible_transitions = 0
@@ -64,7 +47,6 @@ def online_evaluation(offline_env, algo, args):
             done, granted = False, False
             impossible_action = False
             reward_episode, len_epis = 0, 0
-            new_case = False
             previous_trace = []
 
             event, simulation_state, event_scaled = online_env.reset_for_online(seed_to_add=episode)
@@ -118,6 +100,7 @@ def online_evaluation(offline_env, algo, args):
             
     end_time = time.time()
     runtime = end_time - start_time 
+    print(f"Online evaluation completed in {runtime:.2f} seconds.")
 
     optimal_paths_test = optimal_paths_test
 
